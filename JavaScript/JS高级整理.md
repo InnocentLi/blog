@@ -1077,7 +1077,7 @@ var sum = new Function("num1", "num2", "return num1 + num2"); // 不推荐
 
 ```javascript
 function callFun(fun, fargu){
-        return fun(fargu);
+    return fun(fargu);
 }
 ```
 
@@ -1115,7 +1115,6 @@ function createComparisonFunction(propertyName) {
         };
 }
 
-
 data.sort(createComparisonFunction("name")); 8
 var data = [{name: "Zachary", age: 28}, {name: "Nicholas", age: 29}];
 alert(data[0].name);  //Nicholas
@@ -1127,7 +1126,7 @@ alert(data[0].name);  //Zachary
 
 arguments 和 this
 
-斐波那契
+斐波那契重写
 
 #### arguments.callee
 
@@ -1192,20 +1191,16 @@ function foo() {
 }
 var a = 2;  //  变量声明到全局对象中
 foo();
-
 function aaa() {
-    this.a = 4; // 输出4
-    foo();
+    this.a = 4; 
+    foo();// 输出4
 }
-
-
+aaa();
 ```
 
 复制代码使用 var 声明的变量 a，被绑定到全局对象中，如果是浏览器，则是在 window 对象。foo() 调用时，引用了默认绑定，this 指向了全局对象。
 
 这其实造成了一个不安全的问题(在高级技巧里提到过)
-
-
 
 ##### 隐式绑定
 
@@ -1295,15 +1290,34 @@ function New(Constructor, ...args){
     Object.setPrototypeOf(obj, Constructor.prototype);  // 连接新对象与函数的原型
     return Constructor.apply(obj, args) || obj;   // 执行函数，改变 this 指向新的对象
 }
-
 function Foo(a){
     this.a = a;
 }
-
 New(Foo, 1);  // Foo { a: 1 }
 ```
 
 所以，在使用 `new` 来调用函数时候，我们会构造一个新对象并把它绑定到函数调用中的 `this` 上。
+
+例子
+
+```javascript
+Function.prototype.text = function(context) {
+    console.log(this);
+}
+
+function a(){
+    // dosomething
+}
+
+a.text();
+//ƒ a(){
+//    // dosomething
+//}
+其实可以理解为
+
+var a = new Function()；
+在new的时候，this绑定绑定到了a实例上。
+```
 
 ##### 优先级
 
@@ -1323,7 +1337,7 @@ let obj1 = {
 }
 
 obj1.foo();     // 输出 2
-obj1.foo.call({a: 1});      // 输出 1复制代码
+obj1.foo.call({a: 1});      //输出 1 复制代码
 ```
 
 这说明「显式绑定」的优先级大于「隐式绑定」
@@ -1342,10 +1356,8 @@ console.log(obj1); // 输出 {a:2}
 
 let obj2 = new bar(3);
 console.log(obj1); // 输出 {a:2}
-console.log(obj2); // 输出 foo { a: 3 }复制代码
+console.log(obj2); // 输出 foo { a:3 } 复制代码
 ```
-
-
 
 ### 函数属性和方法
 
@@ -1366,9 +1378,11 @@ alert(sum.length);          //2
 alert(sayHi.length);        //0
 ```
 
-以上代码定义了 3 个函数，但每个函数接收的命名参数个数不同。首先，sayName()函数定义了一个参数，因此其 length 属性的值为 1。类似地，sum()函数定义了两个参数，结果其 length 属性中保存的值为 2。而 sayHi()没有命名参数，所以其 length 值为 0。
+> 以上代码定义了 3 个函数，但每个函数接收的命名参数个数不同。首先，sayName()函数定义了一个参数，因此其 length 属性的值为 1。类似地，sum()函数定义了两个参数，结果其 length 属性中保存的值为 2。而 sayHi()没有命名参数，所以其 length 值为 0。
 
 > 对于 ECMAScript 中的引用类型而言，prototype 是保存它们所有实例方法的真正所在。换句话说，toString()和 valueOf()等方法实际上都保存在 prototype 名下，只不过是通过各自对象的实例访问罢了。在创建自定义引用类型以及实现继承时，prototype 属性的作用是极为重要的(第 6 章将详 细介绍)。在 ECMAScript 5 中，prototype 属性是不可枚举的，因此使用 for-in 无法发现。 
+
+#### Call 和 Apply
 
 每个函数都包含两个非继承而来的方法:apply()和 call()。这两个方法的用途都是在特定的作用域中调用函数，实际上等于设置函数体内 this 对象的值。首先，apply()方法接收两个参数:一个 是在**其中运行函数的作用域**，另一个是**参数数组**。其中，第二个参数可以是 Array 的实例，也可以是 arguments 对象。例如: 
 
@@ -1377,7 +1391,6 @@ function sum(num1, num2){
     return num1 + num2;
 }
 function callSum1(num1, num2){
-    
     return sum.apply(this, arguments);
 }
 function callSum2(num1, num2){
@@ -1387,11 +1400,7 @@ alert(callSum1(10,10));   //20
 alert(callSum2(10,10));   //20
 ```
 
-在上面这个例子中，callSum1()在执行 sum()函数时传入了 this 作为 this 值(因为是在全局作用域中调用的，所以传入的就是 window 对象)和 arguments 对象。而 callSum2 同样也调用了sum()函数，但它传入的则是 this 和一个参数数组。这两个函数都会正常执行并返回正确的结果。
-
-在使用 call()方法的情况下，callSum()必须明确地传入每一个参数。结果与使用 apply()没有 什么不同。至于是使用 apply()还是 call()，完全取决于你采取哪种给函数传递参数的方式最方便。 如果你打算直接传入 arguments 对象，或者包含函数中先接收到的也是一个数组，那么使用 apply() 肯定更方便。否则，选择 call()可能更合适。(在不给函数传递参数的情况下，使用哪个方法都无所谓。
-
-事实上，传递参数并非 apply()和 call()真正的用武之地;它们真正强大的地方是**能够扩充函数赖以运行的作用域**。下面来看一个例子。 
+ apply()和 call()真正强大的地方是**能够扩充函数赖以运行的作用域**。
 
 ```javascript
 window.color = "red";
@@ -1403,16 +1412,15 @@ sayColor(); //red
 sayColor.call(this);//red
 sayColor.call(window);//red
 sayColor.call(o);//blue
-
 ```
 
+这个例子是在前面说明 this 对象的示例基础上修改而成的。sayColor()是作为全局函数定义的，而且当在全局作用域中调用它时，它确实会显示"red"——因为对 this.color 的求值会转换成对 window.color 的求值。而 sayColor.call(this)和 sayColor.call(window)，**则是两种显式地在全局作用域中调用函数的方式**，结果当然都会显示"red"。但是，当运行 sayColor.call(o) 时，函数的执行环境就变成**显示绑定**了，因为此时函数体内的 this 对象指向了 o，于是结果显示的是"blue"。 
 
+使用 call()(或 apply())来扩充作用域的最大好处，就是**对象不需要与方法有任何耦合关系**。 在前面例子的第一个版本中，我们是先将 sayColor()函数放到了对象 o 中，然后再通过 o 来调用它的; 而在这里重写的例子中，就不需要先前那个多余的步骤了。 
 
-这个例子是在前面说明 this 对象的示例基础上修改而成的。这一次，sayColor()也是作为全局函数定义的，而且当在全局作用域中调用它时，它确实会显示"red"——因为对 this.color 的求值会转换成对 window.color 的求值。而 sayColor.call(this)和 sayColor.call(window)，则是两 种显式地在全局作用域中调用函数的方式，结果当然都会显示"red"。但是，当运行 sayColor.call(o) 时，函数的执行环境就不一样了，因为此时函数体内的 this 对象指向了 o，于是结果显示的是"blue"。 
+#### bind()
 
-使用 call()(或 apply())来扩充作用域的最大好处，就是对象不需要与方法有任何耦合关系。 在前面例子的第一个版本中，我们是先将 sayColor()函数放到了对象 o 中，然后再通过 o 来调用它的; 而在这里重写的例子中，就不需要先前那个多余的步骤了。 
-
-bind()。这个方法会创建一个函数的实例，其 this 值会被绑定到传给 bind()函数的值。	
+bind()。这个方法会**创建一个函数的实例**，其this值会被绑定到传给 bind()函数的值。
 
 ```javascript
 window.color = "red";
@@ -1422,23 +1430,127 @@ function sayColor(){
 }
 var objectSayColor = sayColor.bind(o);
 objectSayColor();    //blue
+
+
+
+var foo = {
+    value: 1
+};
+function bar() {
+    console.log(this.value);
+}
+// 返回了一个函数
+var bindFoo = bar.bind(foo); 
+bindFoo(); // 1
 ```
 
-
+在这里，sayColor()调用 bind()并传入对象 o，创建了 objectSayColor()函数。object- SayColor()函数的 this 值等于 o，因此即使是在全局作用域中调用这个函数，也会看到"blue"。
 
 
 
 ### 手写call，bind，apply
 
+参考https://github.com/mqyqingfeng/Blog/
 
+call 手写
 
+```javascript
+Function.prototype.call2 = function (context) {
+    // 如果传值为null自动绑定到window上,
+    var context = context || window;
+    
+   	// 获取到绑定的函数。此时this的指向参考this章节
+    context.fn = this;
+	
+    //获取call后面传入的所有参数
+    var args = [];
+    for(var i = 1, len = arguments.length; i < len; i++) {
+        args.push('arguments[' + i + ']');
+    }
+    
+	//将得到的值作为arguments传入fn里，利用eval函数拼接js代码字符串
+    var result = eval('context.fn(' + args +')');
+    
+    delete context.fn
+    return result;
+}
 
+// 测试一下
+var value = 2;
 
+var obj = {
+    value: 1
+}
 
+function bar(name, age) {
+    console.log(this.value);
+    return {
+        value: this.value,
+        name: name,
+        age: age
+    }
+}
 
+bar.call2(null); // 2
 
+console.log(bar.call2(obj, 'kevin', 18));
+// 1
+// Object {
+//    value: 1,
+//    name: 'kevin',
+//    age: 18
+// }
+```
 
-### 没有重载(深入理解)
+apply的手写
+
+```javascript
+Function.prototype.apply = function (context, arr) {
+    var context = Object(context) || window;
+    context.fn = this;
+
+    var result;
+    if (!arr) {
+        result = context.fn();
+    }
+    else {
+        var args = [];
+        for (var i = 0, len = arr.length; i < len; i++) {
+            args.push('arr[' + i + ']');
+        }
+        result = eval('context.fn(' + args + ')')
+    }
+
+    delete context.fn
+    return result;
+}
+```
+
+bind的手写
+
+```javascript
+Function.prototype.bind2 = function (context) {
+    //如果不是function 那么我们就会报错，
+    if (typeof this !== "function") {
+      throw new Error("Function.prototype.bind - what is trying to be bound is not callable");
+    }
+	
+    var self = this;
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    var fNOP = function () {};
+
+    var fBound = function () {
+        var bindArgs = Array.prototype.slice.call(arguments);
+        return self.apply(this instanceof fNOP ? this : context, args.concat(bindArgs));
+    }
+    fNOP.prototype = this.prototype;
+    fBound.prototype = new fNOP();
+    return fBound;
+}
+```
+
+### 没有重载
 
 ```javascript
 function addSomeNumber(num){
@@ -1458,57 +1570,165 @@ addSomeNumber = function (num) {
 var result = addSomeNumber(100); //300
 ```
 
+## 补充
 
+#### URI 编码方法
 
+Global 对象的 encodeURI()和 encodeURIComponent()方法可以对 URI进行编码。有效的 URI 中不能包含某些字符，例如空格和汉字。而这两个 URI 编码方法就可以对 URI 进行编码，它们用特殊的 UTF-8 编码去替换所有无效的字符。
 
+encodeURI()主要用于整个 URI(例如，http://www.wrox.com/illegal value.htm)。
 
+encodeURIComponent()主要用于对 URI 中的某一段(例如前面 URI 中的 illegal value.htm)进行编码。
 
+它们的主要区别在于，encodeURI()不会对本身属于 URI 的特殊字符进行编码，例如冒号、正斜杠、
+问号和井字号;而 encodeURIComponent()则会对它发现的任何非标准字符进行编码
 
+decodeURI()只能对使用 encodeURI()替换的字符进行解码。
+它可将%20 替换成一个空格，但不会对%23 作任何处理，因为%23 表示井字号(#)，而井字号不是使用
+encodeURI()替换的。
 
+decodeURIComponent()能够解码使用 encodeURIComponent()编码的所有字符
+
+#### eval()方法
+
+```javascript
+eval("alert('hi')");
+//这行代码的作用等价于下面这行代码:
+alert("hi");
+```
+
+当解析器发现代码中调用 eval()方法时，它会将传入的参数代码解析， 然后把执行结果插入到原位置。通过 eval()执行的代码被认为是包含该次调用的执行环境的一部分， 因此被执行的代码具有与该执行环境相同的作用域链。这意味着通过 eval()执行的代码可以引用在包 含环境中定义的变量，举个例子: 
+
+```javascript
+var msg = "hello world";
+eval("alert(msg)");    //"hello world"
+```
+
+可见，变量 msg 是在 eval()调用的环境之外定义的，但其中调用的 alert()仍然能够显示"hello world"。这是因为上面第二行代码最终被替换成了一行真正的代码。同样地，我们也可以在 eval() 调用中定义一个函数，然后再在该调用的外部代码中引用这个函数: 
+
+```javascript
+eval("function sayHi() { alert('hi'); }");
+sayHi();
+```
+
+显然，函数 sayHi()是在 eval()内部定义的。但由于对 eval()的调用最终会被替换成定义函数 的实际代码，因此可以在下一行调用 sayHi()。对于变量也一样: 
+
+```javascript
+eval("var msg = 'hello world'; ");
+alert(msg);     //"hello world"
+```
+
+在 eval()中创建的任何变量或函数都不会被提升，因为在解析代码的时候，它们被包含在一个字 符串中;它们只在 eval()执行的时候创建。
+
+严格模式下无法使用eval()
 
 # 面向对象
 
 ## 理解对象
 
+```javascript
+ var person = new Object();
+    person.name = "Nicholas";
+    person.age = 29;
+    person.job = "Software Engineer";
+    person.sayName = function(){
+        alert(this.name);
+ }; 
+
+var person = {
+    name: "Nicholas",
+    age: 29,
+    job: "Software Engineer",
+    sayName: function(){
+    	alert(this.name);
+	} 
+};
+```
+
+### 手写new
+
+
+
+## 深浅拷贝
+
+那如何深拷贝一个数组呢？这里介绍一个技巧，不仅适用于数组还适用于对象！那就是：
+
+```javascript
+var arr = ['old', 1, true, ['old1', 'old2'], {old: 1}]
+
+var new_arr = JSON.parse( JSON.stringify(arr) );
+
+console.log(new_arr);
+```
+
+是一个简单粗暴的好方法，就是有一个问题，不能拷贝函数，我们做个试验：
+
+```javascript
+var arr = [function(){
+    console.log(a)
+}, {
+    b: function(){
+        console.log(b)
+    }
+}]
+
+var new_arr = JSON.parse(JSON.stringify(arr));
+
+console.log(new_arr);
+```
+
+那如何实现一个深拷贝呢？说起来也好简单，我们在拷贝的时候判断一下属性值的类型，如果是对象，我们递归调用深拷贝函数不就好了~
+
+```javascript
+var deepCopy = function(obj) {
+    if (typeof obj !== 'object') return;
+    var newObj = obj instanceof Array ? [] : {};
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            newObj[key] = typeof obj[key] === 'object' ? deepCopy(obj[key]) : obj[key];
+        }
+    }
+    return newObj;
+}
+```
+
+
+
 
 
 ## 创建对象
 
+### 工厂模式
 
-1. 工厂模式
+### 构造函数模式
 
+### 原型模式
 
-2. 构造函数模式
+### 组合使用构造函数模式和原型模式
 
+### 动态原型模式
 
-3. 原型模式
+### 寄生构造函数模式
 
-4. 组合使用构造函数模式和原型模式
-
-
-5. 动态原型模式
-
-
-6. 寄生构造函数模式
-
-
-7. 稳妥构造函数模式
+### 稳妥构造函数模式
 
 
 
 ## 继承
 
-1. 原型链
+### 原型链
 
-2. 借用构造函数
+### 借用构造函数
 
-3. 组合继承
+### 组合继承
 
-4. 原型式继承 
+### 原型式继承 
 
-5. 寄生式继承
+### 寄生式继承
 
-6. 寄生组合式继承
+### 寄生组合式继承
+
+## 
 
 
 
