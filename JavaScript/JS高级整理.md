@@ -1645,6 +1645,74 @@ var person = {
 };
 ```
 
+### 属性类型
+
+#### 数据属性
+
+[[Configurable]]:表示能否通过 **delete 删除属性从而重新定义属性，能否修改属性的特性，或者能否把属性修改为访问器属性**。像前面例子中那样直接在对象上定义的属性，默认值为 true。 
+
+[[Enumerable]]:表示能否通过 **for-in 循环返回属性**。像前面例子中那样直接在对象上定 义的属性，它们的这个特性默认值为 true。
+
+ [[Writable]]:表示**能否修改属性的值**。像前面例子中那样直接在对象上定义的属性，它们的这个特性默认值为 true。
+
+ [[Value]]:包含这个属性的数据值。读取属性值的时候，从这个位置读;写入属性值的时候， 把新值保存在这个位置。这个特性的默认值为 undefined。 
+
+上面的例子中，Configurable，Enumerable，Writable属性都是true.当我们改写任何一个值的时候，都会更改value值
+
+```javascript
+var person = {};
+Object.defineProperty(person, "name", {
+    writable: false,
+    value: "Nicholas"
+});
+alert(person.name); //"Nicholas" 
+person.name = "Greg";
+console.log(person.name); //"Nicholas"
+
+var person = {};
+Object.defineProperty(person, "name", {
+    configurable: false,
+    value: "Nicholas"
+});
+console.log(person.name); //"Nicholas" 
+delete person.name; 
+console.log(person.name); //"Nicholas"
+```
+
+> 把 configurable 设置为 false，表示不能从对象中删除属性。如果对这个属性调用 delete，则在非严格模式下什么也不会发生，而在严格模式下会导致错误。而且，一旦把属性定义为不可配置的，就不能再把它变回可配置了。此时，再调用 Object.defineProperty()方法修改除 writable 之外的特性，都会导致错误:
+
+```javascript
+var person = {};
+Object.defineProperty(person, "name", {
+    configurable: false,
+    value: "Nicholas"
+});
+//抛出错误
+Object.defineProperty(person, "name", {
+    configurable: true,
+    value: "Nicholas"
+});
+
+//此方法也是vue和react的核心方法。
+```
+
+#### 访问器属性
+
+除了数据属性的[[Configurable]]和[[Enumerable]] 还包括Get和Set
+
+[[Get]]:在读取属性时调用的函数。默认值为 undefined。 
+
+[[Set]]:在写入属性时调用的函数。默认值为 undefined。 
+
+定义多个属性则采用Object.defineProperties()方法，可以一次定义多个属性。
+
+利用 Object.getOwnPropertyDescriptor()方法还可以读取属性
+
+var descriptor = Object.getOwnPropertyDescriptor(book, "year");
+
+descriptor.value  //2004
+descriptor.configurable) //true
+
 ### 手写new
 
 
@@ -1694,15 +1762,349 @@ var deepCopy = function(obj) {
 
 
 
+### extends 源码
+
+
+
 
 
 ## 创建对象
 
 ### 工厂模式
 
+```javascript
+ function createPerson(name, age, job){
+        var o = new Object();
+        o.name = name;
+        o.age = age;
+        o.job = job;
+        o.sayName = function(){
+            alert(this.name);
+        };
+		return o; 
+ 	} 
+	var person1 = createPerson("Fk", 29, "FE");
+	var person2 = createPerson("Gas", 27, "DEV");
+```
+
+工厂模式虽然解决了创建多个相似对象的问题，但却没有解决对象识别的问题(即怎样知道一个对象的类型)。
+
 ### 构造函数模式
 
+```javascript
+function Person(name, age, job){
+    this.name = name;
+    this.age = age;
+    this.job = job;
+    this.sayName = function(){
+        alert(this.name);
+	}; 
+}
+
+var person1 = new Person("sad", 29, "FE");
+var person2 = new Person("Geg", 27, "DEV");
+```
+
+#### 构造VS工厂
+
+构造函数的和工厂模式相比的突出特点
+
+1.没有显式地创建对象;
+
+2.直接将属性和方法赋给了 this 对象;
+
+3.没有 return 语句。
+
+创建Person的新实例，必须**new**，会经历以下构造函数
+
+1.创建一个新对象。
+
+2.将构造函数的作用域赋给新对象(因此 this 就指向了这个新对象)。
+
+3.执行构造函数中的代码(为这个新对象添加属性)。
+
+4.返回新对象。
+
+#### 检测
+
+```javascript
+alert(person1.constructor == Person); //true
+alert(person2.constructor == Person); //true
+
+alert(person1 instanceof Object);  //true
+alert(person1 instanceof Person);  //true
+alert(person2 instanceof Object);  //true
+alert(person2 instanceof Person);  //true
+```
+
+#### 将构造函数当作函数
+
+```javascript
+//构造函数
+var person = new Person("Nicholas", 29, "Software Engineer"); 
+person.sayName(); //"Nicholas"
+
+//普通函数
+Person("Greg", 27, "Doctor"); // 添加到window 
+window.sayName(); //"Greg"
+
+//在对象作用域
+var o = new Object();
+Person.call(o, "Kristen", 25, "Nurse"); 
+o.sayName(); //"Kristen"
+```
+
+#### 构造函数的问题
+
+问题就是每个方法都要在每个实例上重新创建一遍。在前面的例子中，person1 和 person2 都有一个名为 sayName()的方法，**但那两个方法不是同一个 Function 的实例**。因为**每定义一个函数，也就是实例化了一个对象。**
+
+所以这个函数相当于
+
+```javascript
+function Person(name, age, job){
+    this.name = name;
+    this.age = age;
+    this.job = job;
+    this.sayName = function(){
+        alert(this.name);
+	}; 
+}
+// 相当于
+function Person(name, age, job){
+        this.name = name;
+        this.age = age;
+        this.job = job;
+		this.sayName = new Function("alert(this.name)"); // 与声明函数在逻辑上是等价的 
+}
+```
+
+所以
+
+```javascript
+person1.sayName == person2.sayName // false
+```
+
+可以这么解决
+
+```javascript
+function Person(name, age, job){
+    this.name = name;
+    this.age = age;
+    this.job = job;
+    this.sayName = sayName;
+}
+function sayName(){
+    alert(this.name);
+}
+var person1 = new Person("Nicholas", 29, "Software Engineer");
+var person2 = new Person("Greg", 27, "Doctor");
+```
+
+但是这样定义完全没有必要，所以我们可以用原型模式
+
 ### 原型模式
+
+利用原型模式创建的函数可以达到上面要求的效果
+
+```javascript
+function Person(){
+}
+Person.prototype.name = "Nicholas";
+Person.prototype.age = 29;
+Person.prototype.job = "Software Engineer";
+Person.prototype.sayName = function(){
+	alert(this.name);
+};
+var person1 = new Person();
+person1.sayName();   //"Nicholas"
+var person2 = new Person();
+person2.sayName(); //"Nicholas"
+alert(person1.sayName == person2.sayName);  //true
+```
+
+所以，我们将sayName()方法和所有属性直接添加到了 Person 的 prototype 属性中。所以person1 和 person2 访问的都是同一组属性和同一个 sayName()函数
+
+#### 理解原型对象
+
+>无论什么时候，只要创建了一个新函数，就会根据一组特定的规则为该函数创建一个 prototype 属性，这个属性指向函数的原型对象。在默认情况下，所有原型对象都会自动获得一个 constructor (构造函数)属性，这个属性包含一个指向 prototype 属性所在函数的指针。就拿前面的例子来说， Person.prototype. constructor 指向 Person。而通过这个构造函数，我们还可继续为原型对象 
+>
+>添加其他属性和方法。
+> 创建了自定义的构造函数之后，其原型对象默认只会取得 constructor 属性;至于其他方法，则 
+>
+>都是从 Object 继承而来的。当调用构造函数创建一个新实例后，该实例的内部将包含一个指针(内部 属性)，指向构造函数的原型对象。ECMA-262 第 5 版中管这个指针叫[[Prototype]]。虽然在脚本中 没有标准的方式访问[[Prototype]]，但 Firefox、Safari 和 Chrome 在每个对象上都支持一个属性 __proto__;而在其他实现中，这个属性对脚本则是完全不可见的。不过，要明确的真正重要的一点就 是，这个连接存在于实例与构造函数的原型对象之间，而不是存在于实例与构造函数之间。 
+
+之前的我是看了很多例子理解的，其实可以这么理解，当我们每次写一些方法的时候都默认给予我们一些方法，比如
+
+```javascript
+var a = [1,2,3,4];
+//在这里我可以直接调用 a.push()方法，但是a.push方法并不是我们构造出来的，而是在Array.prototype上的方法
+//也就是相当于（伪代码）
+var a = new Array();
+Array.prototype.push2(){
+    var arrLength = arguments.length；
+    var arrOther = this;
+    var newArr = [];
+    for(var i = 0;i<arrOther.length;i++){
+        newArr[i] = arrOther[i];
+    }
+    for(var i = arrOther.length ;i<arrOther.length+arrLength;i++){
+        newArr[i] =  arguments[i-arrOther.length];
+    }
+    return newArr;
+}
+    a.push(5,6);  // 1,2,3,4,5,6
+```
+
+回到之前的原型模式的创建代码
+
+```javascript
+alert(Person.prototype.isPrototypeOf(person1));  //true
+alert(Person.prototype.isPrototypeOf(person2));  //true
+```
+
+ECMAScript 5增加了一个新方法，叫Object.getPrototypeOf()，在所有支持的实现中，这个 方法返回[[Prototype]]的值。例如: 
+
+```javascript
+alert(Object.getPrototypeOf(person1) == Person.prototype); //true 
+alert(Object.getPrototypeOf(person1).name); //"Nicholas" 
+```
+
+>每当代码读取某个对象的某个属性时，都会执行一次搜索，目标是具有给定名字的属性。搜索首先
+>从对象实例本身开始。如果在实例中找到了具有给定名字的属性，则返回该属性的值;如果没有找到，
+>则继续搜索指针指向的原型对象，在原型对象中查找具有给定名字的属性。如果在原型对象中找到了这
+>个属性，则返回该属性的值。也就是说，在我们调用 person1.sayName()的时候，会先后执行两次搜
+>索。首先，解析器会问:“实例 person1 有 sayName 属性吗?”答:“没有。”然后，它继续搜索，再
+>问:“person1 的原型有 sayName 属性吗?”答:“有。”于是，它就读取那个保存在原型对象中的函
+>数。当我们调用 person2.sayName()时，将会重现相同的搜索过程，得到相同的结果。而这正是多个 8
+>对象实例共享原型所保存的属性和方法的基本原理。
+
+虽然可以通过对象实例访问保存在原型中的值，但却**不能通过对象实例重写原型中的值**。如果我们在实例中添加了一个属性，而该属性与实例原型中的一个属性同名，那我们就在**实例中创建该属性，该属性将会屏蔽原型中的那个属性**。来看下面的例子。
+
+```javascript
+function Person(){
+}
+Person.prototype.name = "Nicholas";
+Person.prototype.age = 29;
+Person.prototype.job = "Software Engineer"; 12 Person.prototype.sayName = function(){
+    alert(this.name);
+};
+var person1 = new Person();
+person1.name = "Greg";
+alert(person1.name); //"Greg"——来自实例 
+alert(person2.name); //"Nicholas"——来自原型
+```
+
+> 当为对象实例添加一个属性时，这个属性就会屏蔽原型对象中保存的同名属性;换句话说，添加这个属性只会阻止我们访问原型中的那个属性，但不会修改那个属性。即使将这个属性设置为 null，也只会在实例中设置这个属性，而不会恢复其指向原型的连接。不过，使用 delete 操作符则可以完全删除实例属性，从而让我们能够重新访问原型中的属性，如下所示。
+
+#### 清除属性
+
+如果我们删除属性的话
+
+```javascript
+function Person(){
+}
+Person.prototype.name = "Nicholas";
+Person.prototype.age = 29;
+Person.prototype.job = "Software Engineer";
+Person.prototype.sayName = function(){
+    alert(this.name);
+};
+var person1 = new Person();
+var person2 = new Person();
+person1.name = "Greg";
+alert(person1.name);//"Greg"——来自实例
+alert(person2.name); //"Nicholas"——来自原型
+delete person1.name;
+alert(person1.name);//"Nicholas"——来自原型
+```
+
+#### hasOwnProperty()
+
+使用 **hasOwnProperty()方法可以检测一个属性是存在于实例中**，还是存在于原型中。这个方法(不要忘了它是从 Object 继承来的)只在给定属性存在于对象实例中时，才会返回 true。来看下面这个例子
+
+```javascript
+function Person(){
+}
+Person.prototype.name = "Nicholas";
+Person.prototype.age = 29;
+Person.prototype.job = "Software Engineer";
+Person.prototype.sayName = function(){
+    alert(this.name);
+}
+var person1 = new Person();
+var person2 = new Person();
+alert(person1.hasOwnProperty("name"));  //false
+
+person1.name = "Greg";
+alert(person1.name); //"Greg"——来自实例 
+alert(person1.hasOwnProperty("name")); //true
+
+alert(person2.name); //"Nicholas"——来自原型 
+alert(person2.hasOwnProperty("name")); //false
+
+delete person1.name;
+alert(person1.name); //"Nicholas"——来自原型 
+alert(person1.hasOwnProperty("name")); //false
+```
+
+#### 原型与 in 操作符
+
+有两种方式使用 in 操作符:单独使用和在 for-in 循环中使用。在单独使用时，in 操作符会在通过对象能够访问给定属性时返回 true，**无论该属性存在于实例中还是原型中**。看一看下面的例子
+
+```javascript
+function Person(){
+}
+
+Person.prototype.name = "Nicholas";
+Person.prototype.age = 29;
+Person.prototype.job = "Software Engineer";
+Person.prototype.sayName = function(){
+    alert(this.name);
+};
+
+var person1 = new Person();
+var person2 = new Person();
+
+alert(person1.hasOwnProperty("name"));  //false
+alert("name" in person1);  //true
+
+person1.name = "Greg";
+alert(person1.name); //"Greg" ——来自实例 
+alert(person1.hasOwnProperty("name")); //true 
+alert("name" in person1); //true
+
+alert(person2.name); //"Nicholas" ——来自原型 
+alert(person2.hasOwnProperty("name")); //false 
+alert("name" in person2); //true
+
+delete person1.name;
+alert(person1.name); //"Nicholas" ——来自原型 
+alert(person1.hasOwnProperty("name")); //false 
+alert("name" in person1); //true
+```
+
+在以上代码执行的整个过程中，name 属性要么是直接在对象上访问到的，要么是通过原型访问到的。
+
+
+
+
+
+#### 更简单的原型语法
+
+```javascript
+function Person(){
+}
+Person.prototype = {
+    name : "Nicholas",
+    age : 29,
+    job: "Software Engineer",
+    sayName : function () {
+        alert(this.name);
+    }
+};
+```
+
+
 
 ### 组合使用构造函数模式和原型模式
 
@@ -1717,6 +2119,8 @@ var deepCopy = function(obj) {
 ## 继承
 
 ### 原型链
+
+
 
 ### 借用构造函数
 
@@ -1811,7 +2215,7 @@ CSS3性能如果加入translate z 0 也会提升性能
 
 ```javascript
 function isArray(value){
-	Object.prototype.toSting.call(value) == "[object Array]"
+	Object.prototype.toSting.call(value) == "[object Array]";
 }
 ```
 
@@ -1826,9 +2230,9 @@ function Person(name, age, job){
 var person = new Person("Nicholas", 29, "Software Engineer");
 ```
 
-
-
 ### 函数柯里化
+
+
 
 
 
@@ -1870,13 +2274,15 @@ var person = new Person("Nicholas", 29, "Software Engineer");
 
 ## Web Workers
 
-# ES6
 
-promise
 
-map set
 
-let const
+
+
+
+
+
+
 
 
 
