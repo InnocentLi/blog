@@ -1707,9 +1707,9 @@ Object.defineProperty(person, "name", {
 
 除了数据属性的[[Configurable]]和[[Enumerable]] 还包括Get和Set
 
-[[Get]]:在读取属性时调用的函数。默认值为 undefined。 
+[[Get]]:在**读取**属性时调用的函数。默认值为 undefined。 
 
-[[Set]]:在写入属性时调用的函数。默认值为 undefined。 
+[[Set]]:在**写入**属性时调用的函数。默认值为 undefined。 
 
 定义多个属性则采用Object.defineProperties()方法，可以一次定义多个属性。
 
@@ -1718,15 +1718,22 @@ Object.defineProperty(person, "name", {
 var descriptor = Object.getOwnPropertyDescriptor(book, "year");
 
 descriptor.value  //2004
+
 descriptor.configurable) //true
 
 ### 手写new
 
 
 
+
+
+
+
 ## 深浅拷贝
 
 那如何深拷贝一个数组呢？这里介绍一个技巧，不仅适用于数组还适用于对象！那就是：
+
+### 深拷贝
 
 ```javascript
 var arr = ['old', 1, true, ['old1', 'old2'], {old: 1}]
@@ -1761,6 +1768,24 @@ var deepCopy = function(obj) {
     for (var key in obj) {
         if (obj.hasOwnProperty(key)) {
             newObj[key] = typeof obj[key] === 'object' ? deepCopy(obj[key]) : obj[key];
+        }
+    }
+    return newObj;
+}
+```
+
+浅拷贝
+
+```javascript
+var shallowCopy = function(obj) {
+    // 只拷贝对象
+    if (typeof obj !== 'object') return;
+    // 根据obj的类型判断是新建一个数组还是对象
+    var newObj = obj instanceof Array ? [] : {};
+    // 遍历obj，并且判断是obj的属性才拷贝
+    for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            newObj[key] = obj[key];
         }
     }
     return newObj;
@@ -2649,10 +2674,6 @@ SubType.prototype.sayAge = function(){
 
 
 
-
-
-
-
 寄生组合式继承的基本模式
 
 ```javascript
@@ -2690,17 +2711,45 @@ SubType.prototype.sayAge = function(){
 ## 闭包
 闭包是指有权访问另一个 函数作用域中的变量的函数。
 
+```javascript
+function createComparisonFunction(propertyName) {
+	return function(object1, object2){
+	var value1 = object1[propertyName]; 
+    var value2 = object2[propertyName];
+	if (value1 < value2){ 
+        return -1; 
+    }else if(value1 > value2){
+		return 1; 
+    }else{
+		return 0; 
+    }
+  };
+}
+```
 
+即使这个内部函数被返回了，而且是在其他地方被调用了，但它仍然可 以访问变量 propertyName 。 之所以还能够访问这个变量， 是因为内部函数的作用域链中包含 createComparisonFunction()的作用域。
 
 
 
 ## 模仿块级作用域
 
-ES6块级作用
+## ES6块级作用
+
+
 
 ## 私有变量
 
-ES6 私有变量
+红宝书在这里解释的有些落后，参考这个例子(来源掘金)
+
+https://juejin.im/post/5a8e9b6d5188257a5f1ed826
+
+### 命名约定
+
+第一个也是最成熟的方法是使用特定的命名约定来表示属性应该被视为私有。通常以下划线作为属性名称的前缀（例如 `_count` ）。这并没有真正阻止变量被访问或修改，而是依赖于开发者之间的相互理解，认为这个变量应该被视为限制访问。
+
+### WeakMap
+
+### Proxy
 
 
 # BOM
@@ -2840,9 +2889,7 @@ var person = new Person("Nicholas", 29, "Software Engineer");
 
 
 
-# CSS
 
-https://segmentfault.com/a/1190000013325778
 
 
 
