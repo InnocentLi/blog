@@ -193,7 +193,7 @@ Undefined、Null、Boolean、Number 和 String。**基本数据类型是按值�
 
 栈使用的是一级缓存， 他们通常都是被调用时处于存储空间中，调用完毕立即释放堆（操作系统）： 一般由程序员分配释放， 若程序员不释放，程序结束时可能由OS回收，分配方式倒是类似于链表。
 
-堆则是存放在二级缓存中，生命周期由虚拟机的垃圾回收算法来决定（并不是一旦成为孤儿对象就能被回收）。所以调用这些对象的速度要相对来得低一些
+堆则是存放在二级缓存中，生命周期由虚拟机的垃圾回收算法来决定（并不是一旦成为野对象就能被回收）。所以调用这些对象的速度要相对来得低一些
 堆（数据结构）：堆可以被看成是一棵树，如：堆排序
 栈（数据结构）：一种后进先出的的数据结构
 
@@ -206,6 +206,16 @@ Undefined、Null、Boolean、Number 和 String。**基本数据类型是按值�
 例如IOS开发的的时候利用release释放内存
 
 > 在MRC的内存管理模式下，与对变量的管理相关的方法有：retain, release 和 autorelease。retain 和 release 方法操作的是引用记数，当引用记数为零时，便自动释放内存。并且可以用 NSAutoreleasePool 对象，对加入自动释放池（autorelease 调用）的变量进行管理，当 drain 时回收内存。
+
+| 栈内存                 | 堆内存                       |
+| ---------------------- | ---------------------------- |
+| 存储基础数据类型       | 存储引用数据类型             |
+| 按值访问               | 按引用访问                   |
+| 存储的值大小固定       | 存储的值大小不定，可动态调整 |
+| 由系统自动分配内存空间 | 由程序员通过代码进行分配     |
+| 主要用来执行程序       | 主要用来存放对象             |
+| 空间小，运行效率高     | 空间大，但是运行效率相对较低 |
+| 先进后出，后进先出     | 无序存储，可根据引用直接获取 |
 
 
 
@@ -574,7 +584,7 @@ alert(colors);// red,blue,green
 ```
 
 ### 栈方法
-
+v
 ```javascript
 var colors = new Array();// 创建一个数组 
 var count = colors.push("red", "green"); // 推入两项 
@@ -1370,7 +1380,7 @@ console.log(obj2); // 输出 foo { a:3 } 复制代码
 
 ### 函数属性和方法
 
-ECMAScript 中的函数是对象，因此函数也有属性和方法。每个函数都包含两个 属性:length 和 prototype。其中，length 属性表示函数希望接收的命名参数的个数，如下面的例子所示。
+ECMAScript 中的函数是对象，因此函数也有属性和方法。每个函数都包含两个属性:length 和 prototype。其中，length 属性表示函数希望接收的命名参数的个数，如下面的例子所示。
 
 ```javascript
 function sayName(name){
@@ -2405,8 +2415,8 @@ instanceof实例与原型链中出现过的构造函数，结果就会返回 tru
 
 ```javascript
 alert(instance instanceof Object);     //true 
-alert(instance instanceof yeye);  //true
-alert(instance instanceof father);    //true
+alert(instance instanceof yeye);       //true
+alert(instance instanceof father);     //true
 ```
 
 isPrototypeOf() 只要是原型链中出现过的原型，都可以说是该原型链所派生的实例的原型，返回true
@@ -2829,9 +2839,122 @@ function Person(name, age, job){
 var person = new Person("Nicholas", 29, "Software Engineer");
 ```
 
+Person构造函数使用this对象给三个属性赋值:name、age和job。当和new 操作符连用时，则会创建一个新的 Person 对象，同时会给它分配这些属性。问题出在当没有使用 new 操作符来调用该构造函数的情况上。由于该 this 对象是在运行时绑定的，所以直接调用 Person()， this 会映射到全局对象 window 上，导致错误对象属性的意外增加。例如: 
+
+```javascript
+var person = Person("Nicholas", 29, "Software Engineer");
+alert(window.name);
+alert(window.age);
+alert(window.job);
+//"Nicholas"
+//29
+//"Software Engineer"
+```
+
+**因为构造函数是作为普通函数调用的，忽略了 new 操作符。**这个问题是由 this 对象的晚绑定造成的，在这里 this 被解析成了 window对象。由于 window 的 name 属性是用于识别链接目标和 frame 的，所以这里对该属性的偶然覆盖可能会导致该页面上出现其他错误。
+
+安全的写法
+
+```javascript
+function Person(name, age, job){
+        if (this instanceof Person){
+            this.name = name;
+            this.age = age;
+            this.job = job;
+        } else {
+            return new Person(name, age, job);
+		}
+}
+    var person1 = Person("Nicholas", 29, "Software Engineer");
+    alert(window.name);      //""
+    alert(person1.name);     //"Nicholas"
+    var person2 = new Person("Shelby", 34, "Ergonomist");
+    alert(person2.name);     //"Shelby"
+
+```
+
+>在这段代码中，Polygon 构造函数是作用域安全的，然而 Rectangle 构造函数则不是。新创建一个 Rectangle 实例之后，这个实例应该通过 Polygon.call()来继承 Polygon 的 sides 属性。但是， 由于 Polygon 构造函数是作用域安全的，this 对象并非 Polygon 的实例，所以会创建并返回一个新的 Polygon 对象。Rectangle 构造函数中的 this 对象并没有得到增长，同时 Polygon.call()返回的值也没有用到，所以 Rectangle 实例中就不会有 sides 属性。
+
+所以可以采用一下方法
+
+```javascript
+function Polygon(sides){
+    if (this instanceof Polygon) {
+        this.sides = sides;
+        this.getArea = function(){
+return 0; };
+    } else {
+        return new Polygon(sides);
+} }
+function Rectangle(width, height){
+    Polygon.call(this, 2);
+    this.width = width;
+    this.height = height;
+    this.getArea = function(){
+        return this.width * this.height;
+    };
+}
+Rectangle.prototype = new Polygon();
+var rect = new Rectangle(5, 10);
+alert(rect.sides);        //2
+```
+
+> 上面这段重写的代码中，一个 Rectangle 实例也同时是一个 Polygon 实例，所以 Polygon.call() 会照原意执行，最终为 Rectangle 实例添加了 sides 属性。 
+
+> 多个程序员在同一个页面上写 JavaScript 代码的环境中，作用域安全构造函数就很有用了。届时， 对全局对象意外的更改可能会导致一些常常难以追踪的错误。除非你单纯基于构造函数窃取来实现继 承，推荐作用域安全的构造函数作为最佳实践。 
+
 ### 函数柯里化
 
+它用于创建已经设置好了一个或多个参数的函数。函数柯里化的基本方法和函数绑定是一样的:使用一个闭包返回一个函数。两者的区别在于，**当函数被调用时，返回的函数还需要设置一些传入的参数**
 
+```javascript
+function add(num1, num2){
+    return num1 + num2;
+}
+
+function curriedAdd(num2){
+    return add(5, num2);
+}
+    alert(add(2, 3));     //5
+    alert(curriedAdd(3)); //8
+```
+
+这段代码定义了两个函数:add()和 curriedAdd()。后者本质上是在任何情况下第一个参数为5的 add()版本，调用另一个函数并为它传入要柯里化的函数和必要参数。下 面是创建柯里化函数的通用方式。 
+
+```javascript
+function bind(fn, context){
+	var args = Array.prototype.slice.call(arguments, 2); 
+    return function(){
+		var innerArgs = Array.prototype.slice.call(arguments); 
+    	var finalArgs = args.concat(innerArgs);
+		return fn.apply(context, finalArgs);
+	}; 
+}
+```
+
+curry()函数的主要工作就是将被返回函数的参数进行排序。curry()的第一个参数是要进行柯里化的函数，其他参数是要传入的值。为了获取第一个参数之后的所有参数，在 arguments 对象上调用了 slice()方法，并传入参数 1 表示被返回的数组包含从第二个参数开始的所有参数。然后 args 数组包含了来自外部函数的参数。在内部函数中，创建了 innerArgs 数组用来存放所有传入的参数(又一次用到了 slice())。有了存放来自外部函数和内部函数的参数数组后，就可以使用 concat()方法将它们组合为 finalArgs，然后使用 apply()将结果传递给该函数。
+
+```javascript
+ function add(num1, num2){
+    return num1 + num2;
+}
+var curriedAdd = curry(add, 5);
+alert(curriedAdd(3));   //8
+```
+
+在这个例子中，创建了第一个参数绑定为 5 的 add()的柯里化版本。当调用 curriedAdd()并传入 3 时，3 会成为 add()的第二个参数，同时第一个参数依然是 5，最后结果便是和 8。你也可以像下面例子这样给出所有的函数参数:
+
+```javascript
+function add(num1, num2){
+    return num1 + num2;
+}
+var curriedAdd = curry(add, 5, 12);
+alert(curriedAdd());   //17
+```
+
+
+
+### 函数式编程
 
 
 
@@ -2839,15 +2962,106 @@ var person = new Person("Nicholas", 29, "Software Engineer");
 
 
 
+```javascript
+var handler = {
+        message: "Event handled",
+        handleClick: function(event){
+            alert(this.message);
+} };
+    var btn = document.getElementById("my-btn");
+    EventUtil.addHandler(btn, "click", handler.handleClick);
+
+```
+
+在上面这个例子中，创建了一个叫做 handler 的对象。handler.handleClick()方法被分配为一个 DOM 按钮的事件处理程序。当按下该按钮时，就调用该函数，显示一个警告框。虽然貌似警告框应该显示 Event handled，然而实际上显示的是 undefiend。这个问题在于没有保存handler.handleClick()的环境，所以 this 对象最后是指向了 DOM 按钮而非 handler
+
+所以我们利用bind
+
+一个简单的 bind()函数接受一个函数和一个环境，并返回一个在给定环境中调用给定函数的函数，并且将所有参数原封不动传递过去
+
+```javascript
+function bind(fn, context){
+	return function(){
+		return fn.apply(context, arguments); 
+	};
+}
+```
+
+
+
+```javascript
+message: "Event handled", 19
+    handleClick: function(event){
+        alert(this.message);
+}
+}; 
+var handler = {
+	var btn = document.getElementById("my-btn");
+	EventUtil.addHandler(btn, "click", bind(handler.handleClick, handler)
+);
+```
+
+
+
+
+
+````javascript
+var handler = {
+    message: "Event handled",
+    handleClick: function(event){
+        alert(this.message + ":" + event.type);
+} };
+var btn = document.getElementById("my-btn");
+EventUtil.addHandler(btn, "click", bind(handler.handleClick, handler));
+````
+
+handler.handleClick()方法和平时一样获得了 event 对象，因为所有的参数都通过被绑定的函数直接传给了它。
+
+原生方法bind
+
+```javascript
+var handler = { 
+		message: "Event handled",
+        handleClick: function(event){
+        alert(this.message + ":" + event.type);
+        }
+}; 
+
+var btn = document.getElementById("my-btn");
+EventUtil.addHandler(btn, "click", handler.handleClick.bind(handler)); 
+```
+
+
+
 ## 防篡改对象
 
 ### 不可扩展对象
 
+利用Object.preventExtensions函数
+
+```javascript
+var person = { name: "Nicholas" };
+Object.preventExtensions(person);
+person.age = 29;
+alert(person.age); //undefined
+```
+
+检测是否是不可扩展的对象
+
+```javascript
+var person = { name: "Nicholas" };
+alert(Object.isExtensible(person)); //true
+Object.preventExtensions(person);
+alert(Object.isExtensible(person)); //false
+```
+
 ### 密封的对象
+
+
 
 ### 冻结的对象
 
-### 
+
 
 ## 高级定时器
 
